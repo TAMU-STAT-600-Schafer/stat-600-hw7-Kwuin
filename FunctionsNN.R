@@ -69,15 +69,17 @@ loss_grad_scores <- function(y, scores, K){
 # lambda - a non-negative scalar, ridge parameter for gradient calculations
 one_pass <- function(X, y, K, W1, b1, W2, b2, lambda) {
   n <- nrow(X)
-  
+  #browser()
   # Forward pass
   # From input to hidden
   # Correct broadcasting of b1
   hidden_raw <- X %*% W1 + matrix(rep(b1, each = n), nrow = n)
-  
+
   # ReLU activation
-  hidden <- pmax(0, hidden_raw)
-  
+  hidden <- pmax(hidden_raw,0)
+  print(dim(hidden))
+  print(dim(W2))
+  #browser()
   # From hidden to output scores
   # Correct broadcasting of b2
   scores <- hidden %*% W2 + matrix(rep(b2, each = n), nrow = n)
@@ -117,7 +119,7 @@ evaluate_error <- function(Xval, yval, W1, b1, W2, b2){
   n <- nrow(Xval)
   
   # [ToDo] Forward pass to get scores on validation data
-  hidden <- pmax(0, Xval %*% W1 + rep(1, n) %*% t(b1))  # With ReLU
+  hidden <- pmax(Xval %*% W1 + rep(1, n) %*% t(b1), 0)  # With ReLU
   scores <- hidden %*% W2 + rep(1, n) %*% t(b2)
   
   # [ToDo] Evaluate error rate (in %) when 

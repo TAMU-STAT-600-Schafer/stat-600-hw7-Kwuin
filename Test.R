@@ -72,6 +72,7 @@ test_that("NN can learn to separate two normal populations", {
   yval <- c(rep(0, 20), rep(1, 20))
   
   # Train network
+  source("FunctionsNN.R")
   result <- NN_train(X, y, Xval, yval, 
                      lambda=0.01, rate=0.01, 
                      mbatch=20, nEpoch=50,
