@@ -28,6 +28,7 @@ initialize_bw <- function(p, hidden_p, K, scale = 1e-3, seed = 12345){
 # y - a vector of size n of class labels, from 0 to K-1
 # K - number of classes
 loss_grad_scores <- function(y, scores, K){
+  #browser()
   n = length(y)
   # [ToDo] Calculate loss when lambda = 0
   scores_shifted <- sweep(scores, 1, apply(scores, 1, max))  # for numerical stability
@@ -44,7 +45,7 @@ loss_grad_scores <- function(y, scores, K){
   
   # [ToDo] Calculate misclassification error rate (%)
   # when predicting class labels using scores versus true y
-  predictions <- max.col(scores) - 1  # -1 to make 0-based
+  predictions <- max.col(scores, ties.method = "random") - 1  # -1 to make 0-based
   error <- mean(predictions != y) * 100
   
   
@@ -66,33 +67,44 @@ loss_grad_scores <- function(y, scores, K){
 # W2 - a h by K matrix of weights
 # b2 - a vector of size K of intercepts
 # lambda - a non-negative scalar, ridge parameter for gradient calculations
-one_pass <- function(X, y, K, W1, b1, W2, b2, lambda){
-  # [To Do] Forward pass
-  # From input to hidden 
-  hidden_raw <- X %*% W1 + rep(1, n) %*% t(b1)
-  # ReLU
+one_pass <- function(X, y, K, W1, b1, W2, b2, lambda) {
+  n <- nrow(X)
+  
+  # Forward pass
+  # From input to hidden
+  # Correct broadcasting of b1
+  hidden_raw <- X %*% W1 + matrix(rep(b1, each = n), nrow = n)
+  
+  # ReLU activation
   hidden <- pmax(0, hidden_raw)
+  
   # From hidden to output scores
+  # Correct broadcasting of b2
+  scores <- hidden %*% W2 + matrix(rep(b2, each = n), nrow = n)
+  
+  # Get loss, error, gradient at current scores
   out <- loss_grad_scores(y, scores, K)
- 
   
-  # [ToDo] Backward pass
-  # Get loss, error, gradient at current scores using loss_grad_scores function
-  dW2 <- t(hidden) %*% out$grad + lambda * W2
-  db2 <- colSums(out$grad)
+  # Backward pass
+  # Gradient for W2, b2
+  dscores <- out$grad
+  dW2 <- t(hidden) %*% dscores + lambda * W2
+  db2 <- colSums(dscores)
   
-  # Get gradient for 2nd layer W2, b2 (use lambda as needed)
-  dhidden <- out$grad %*% t(W2)
-  dhidden[hidden_raw <= 0] <- 0 
+  # Gradient for hidden layer
+  dhidden <- dscores %*% t(W2)
+  dhidden[hidden_raw <= 0] <- 0  # ReLU gradient
   
-  # Get gradient for hidden, and 1st layer W1, b1 (use lambda as needed)
+  # Gradient for W1, b1
   dW1 <- t(X) %*% dhidden + lambda * W1
   db1 <- colSums(dhidden)
-  # Return output (loss and error from forward pass,
-  # list of gradients from backward pass)
-  return(list(loss = out$loss, error = out$error, grads = list(dW1 = dW1, db1 = db1, dW2 = dW2, db2 = db2)))
+  
+  return(list(
+    loss = out$loss,
+    error = out$error,
+    grads = list(dW1 = dW1, db1 = db1, dW2 = dW2, db2 = db2)
+  ))
 }
-
 # Function to evaluate validation set error
 ####################################################
 # Xval - a matrix of size nval by p (input)
