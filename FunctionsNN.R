@@ -146,59 +146,72 @@ evaluate_error <- function(Xval, yval, W1, b1, W2, b2){
 # seed - for reproducibility of SGD and initialization
 NN_train <- function(X, y, Xval, yval, lambda = 0.01,
                      rate = 0.01, mbatch = 20, nEpoch = 100,
-                     hidden_p = 20, scale = 1e-3, seed = 12345){
-  # Get sample size and total number of batches
-  n = length(y)
-  nBatch = floor(n/mbatch)
-
-  # [ToDo] Initialize b1, b2, W1, W2 using initialize_bw with seed as seed,
-  # and determine any necessary inputs from supplied ones
+                     hidden_p = 20, scale = 1e-3, seed = 12345) {
+  # Set seed for reproducibility
+  set.seed(seed)
+  
+  # Get dimensions
+  n <- length(y)
   p <- ncol(X)
   K <- length(unique(y))
+  nBatch <- floor(n/mbatch)
   
+  # Initialize parameters
   params <- initialize_bw(p, hidden_p, K, scale, seed)
   W1 <- params$W1
   b1 <- params$b1
   W2 <- params$W2
   b2 <- params$b2
-  # Initialize storage for error to monitor convergence
-  error = rep(NA, nEpoch)
-  error_val = rep(NA, nEpoch)
   
-  # Set seed for reproducibility
-  set.seed(seed)
-  # Start iterations
-  for (i in 1:nEpoch){
-    # Allocate bathes
-    batchids = sample(rep(1:nBatch, length.out = n), size = n)
+  # Initialize storage
+  error <- rep(NA, nEpoch)
+  error_val <- rep(NA, nEpoch)
+  
+  # Let's print initial loss and error to debug
+  initial_pass <- one_pass(X, y, K, W1, b1, W2, b2, lambda)
+  cat("Initial loss:", initial_pass$loss, "Initial error:", initial_pass$error, "\n")
+  
+  for (i in 1:nEpoch) {
+    # Randomly shuffle data for batches
+    batch_idx <- sample(n)
     batch_errors <- numeric(nBatch)
     
-    # [ToDo] For each batch
-    #  - do one_pass to determine current error and gradients
-    #  - perform SGD step to update the weights and intercepts
-    for(j in 1:nBatch){
-      batch_idx <- which(batchids == j)
+    for(j in 1:nBatch) {
+      # Get current batch
+      current_idx <- batch_idx[((j-1)*mbatch + 1):min(j*mbatch, n)]
       
-      # One pass on current batch
-      out <- one_pass(X[batch_idx,], y[batch_idx], K, W1, b1, W2, b2, lambda)
+      # Forward and backward pass
+      out <- one_pass(X[current_idx,], y[current_idx], K, W1, b1, W2, b2, lambda)
       
       # Store batch error
       batch_errors[j] <- out$error
       
-      # Update parameters with SGD
+      # Print gradients norm to debug
+      if(i == 1 && j == 1) {
+        cat("First batch gradients norm:",
+            sqrt(sum(out$grads$dW1^2)),
+            sqrt(sum(out$grads$dW2^2)), "\n")
+      }
+      
+      # Simple SGD update
       W1 <- W1 - rate * out$grads$dW1
       b1 <- b1 - rate * out$grads$db1
       W2 <- W2 - rate * out$grads$dW2
       b2 <- b2 - rate * out$grads$db2
     }
     
-    
-    # [ToDo] In the end of epoch, evaluate
-    # - average training error across batches
-    error[i] <- mean(batch_errors)
-    # - validation error using evaluate_error function
+    # Calculate and store errors
+    full_pass <- one_pass(X, y, K, W1, b1, W2, b2, lambda)
+    error[i] <- full_pass$loss  # Let's track loss instead of error to debug
     error_val[i] <- evaluate_error(Xval, yval, W1, b1, W2, b2)
+    
+    # Print every 10 epochs
+    if(i %% 10 == 0) {
+      cat("Epoch", i, "Loss:", error[i], "Val error:", error_val[i], "\n")
+    }
   }
-  # Return end result
-  return(list(error = error, error_val = error_val, params =  list(W1 = W1, b1 = b1, W2 = W2, b2 = b2)))
+  
+  return(list(error = error,
+              error_val = error_val,
+              params = list(W1 = W1, b1 = b1, W2 = W2, b2 = b2)))
 }

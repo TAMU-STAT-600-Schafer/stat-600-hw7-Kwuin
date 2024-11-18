@@ -126,7 +126,7 @@ test_that("one_pass produces correct output format and reasonable values", {
 })
 
 # Test 5: Check Learning Process
-test_that("Network shows proper learning behavior", {
+#test_that("Network shows proper learning behavior", {
   set.seed(12345)
   
   # Generate simple linearly separable data
@@ -145,6 +145,7 @@ test_that("Network shows proper learning behavior", {
   X_val <- X[-train_idx,]
   y_val <- y[-train_idx]
   
+  source("FunctionsNN.R")
   # Train with different learning rates
   result1 <- NN_train(X_train, y_train, X_val, y_val, 
                       rate=0.01, nEpoch=30)
@@ -166,4 +167,4 @@ test_that("Network shows proper learning behavior", {
   # 4. Check for overfitting
   train_vs_val_correlation <- cor(result1$error, result1$error_val)
   expect_true(train_vs_val_correlation > 0.5)
-})
+#})
