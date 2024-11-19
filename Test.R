@@ -126,17 +126,31 @@ test_that("one_pass produces correct output format and reasonable values", {
 })
 
 # Test 5: Check Learning Process
-#test_that("Network shows proper learning behavior", {
+test_that("Network shows proper learning behavior", {
   set.seed(12345)
   
-  # Generate simple linearly separable data
+  # Generate linearly separable data
   n <- 200
-  X <- matrix(c(
-    rnorm(n/2, mean=-2), rnorm(n/2, mean=-2),  # Class 0
-    rnorm(n/2, mean=2), rnorm(n/2, mean=2)      # Class 1
-  ), ncol=2)
+  
+  # First class: points in first and third quadrants
+  X0 <- rbind(
+    matrix(runif(n/4 * 2, 0, 3), ncol=2),    # first quadrant
+    matrix(runif(n/4 * 2, -3, 0), ncol=2)     # third quadrant
+  )
+  
+  # Second class: points in second and fourth quadrants
+  X1 <- rbind(
+    matrix(c(runif(n/4, -3, 0), runif(n/4, 0, 3)), ncol=2),    # second quadrant
+    matrix(c(runif(n/4, 0, 3), runif(n/4, -3, 0)), ncol=2)     # fourth quadrant
+  )
+  
+  # Combine data
+  X <- rbind(X0, X1)
   X <- cbind(1, X)  # Add intercept
   y <- c(rep(0, n/2), rep(1, n/2))
+  
+  # Optional: visualize to verify separability
+  # plot(X[,2], X[,3], col=y+1, pch=19)
   
   # Split into train and validation
   train_idx <- sample(n, 0.8*n)
@@ -145,10 +159,9 @@ test_that("one_pass produces correct output format and reasonable values", {
   X_val <- X[-train_idx,]
   y_val <- y[-train_idx]
   
-  source("FunctionsNN.R")
   # Train with different learning rates
   result1 <- NN_train(X_train, y_train, X_val, y_val, 
-                      rate=0.01, nEpoch=30)
+                      rate=0.3, nEpoch=30)
   result2 <- NN_train(X_train, y_train, X_val, y_val, 
                       rate=0.1, nEpoch=30)
   
@@ -162,9 +175,9 @@ test_that("one_pass produces correct output format and reasonable values", {
   # 3. Higher learning rate should lead to faster initial improvement
   early_improvement1 <- result1$error[5] - result1$error[1]
   early_improvement2 <- result2$error[5] - result2$error[1]
-  expect_true(abs(early_improvement2) > abs(early_improvement1))
+  expect_true(abs(early_improvement2) < abs(early_improvement1))
   
   # 4. Check for overfitting
   train_vs_val_correlation <- cor(result1$error, result1$error_val)
   expect_true(train_vs_val_correlation > 0.5)
-#})
+})
