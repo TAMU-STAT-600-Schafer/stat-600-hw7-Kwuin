@@ -58,6 +58,7 @@ loss_grad_scores <- function(y, scores, K){
   return(list(loss = loss, grad = grad, error = error))
 }
 
+
 # One pass function
 ################################################
 # X - a matrix of size n by p (input)
@@ -77,8 +78,6 @@ one_pass <- function(X, y, K, W1, b1, W2, b2, lambda) {
 
   # ReLU activation
   hidden <- pmax(hidden_raw,0)
-  print(dim(hidden))
-  print(dim(W2))
   #browser()
   # From hidden to output scores
   # Correct broadcasting of b2
@@ -107,6 +106,7 @@ one_pass <- function(X, y, K, W1, b1, W2, b2, lambda) {
     grads = list(dW1 = dW1, db1 = db1, dW2 = dW2, db2 = db2)
   ))
 }
+
 # Function to evaluate validation set error
 ####################################################
 # Xval - a matrix of size nval by p (input)
@@ -156,7 +156,6 @@ NN_train <- function(X, y, Xval, yval, lambda = 0.01,
   K <- length(unique(y))
   nBatch <- floor(n/mbatch)
   
-  # Initialize parameters
   params <- initialize_bw(p, hidden_p, K, scale, seed)
   W1 <- params$W1
   b1 <- params$b1
@@ -167,12 +166,10 @@ NN_train <- function(X, y, Xval, yval, lambda = 0.01,
   error <- rep(NA, nEpoch)
   error_val <- rep(NA, nEpoch)
   
-  # Let's print initial loss and error to debug
   initial_pass <- one_pass(X, y, K, W1, b1, W2, b2, lambda)
   cat("Initial loss:", initial_pass$loss, "Initial error:", initial_pass$error, "\n")
   
   for (i in 1:nEpoch) {
-    # Randomly shuffle data for batches
     batch_idx <- sample(n)
     batch_errors <- numeric(nBatch)
     
@@ -181,7 +178,7 @@ NN_train <- function(X, y, Xval, yval, lambda = 0.01,
       current_idx <- batch_idx[((j-1)*mbatch + 1):min(j*mbatch, n)]
       
       # Forward and backward pass
-      out <- one_pass(X[current_idx,], y[current_idx], K, W1, b1, W2, b2, lambda)
+      out <- one_pass(X[current_idx,,drop=FALSE], y[current_idx], K, W1, b1, W2, b2, lambda)
       
       # Store batch error
       batch_errors[j] <- out$error
@@ -202,7 +199,7 @@ NN_train <- function(X, y, Xval, yval, lambda = 0.01,
     
     # Calculate and store errors
     full_pass <- one_pass(X, y, K, W1, b1, W2, b2, lambda)
-    error[i] <- full_pass$loss  # Let's track loss instead of error to debug
+    error[i] <- mean(batch_errors)
     error_val[i] <- evaluate_error(Xval, yval, W1, b1, W2, b2)
     
     # Print every 10 epochs

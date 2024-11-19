@@ -35,11 +35,10 @@ plot(out$error_train, type = 'o') # around 19.5 if keep training
 plot(out$error_test, type = 'o') # around 25 if keep training
 
 
-# Apply neural network training with default given parameters
 out2 = NN_train(Xtrain, Ytrain, Xval, Yval, lambda = 0.001,
                 rate = 0.1, mbatch = 50, nEpoch = 150,
                 hidden_p = 100, scale = 1e-3, seed = 12345)
-plot(1:length(out2$error), out2$error, ylim = c(0, 70))
+lines(1:length(out2$error), out2$error, col = "blue")
 lines(1:length(out2$error_val), out2$error_val, col = "red")
 
 # Evaluate error on testing data
@@ -48,3 +47,17 @@ test_error # 16.1
 
 # [ToDo] Try changing the parameters above to obtain a better performance,
 # this will likely take several trials
+
+source("FunctionsNN.R")
+out3 = NN_train(Xtrain, Ytrain, Xval, Yval, lambda = 0.0005,
+                rate = 0.05, mbatch = 30, nEpoch = 150,
+                hidden_p = 150, scale = 1e-3, seed = 12345)
+plot(1:length(out3$error), out2$error, ylim = c(0, 70))
+lines(1:length(out3$error_val), out2$error_val, col = "red")
+
+# Evaluate error on testing data
+test_error = evaluate_error(Xt, Yt, out3$params$W1, out3$params$b1, out3$params$W2, out3$params$b2)
+test_error # 16.1
+
+# Test error: 15.86667%
+
